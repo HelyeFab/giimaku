@@ -147,12 +147,91 @@ export function parseSubtitles(content: string, fileName?: string): Subtitle[] {
   // Detect format based on content and/or file extension
   const isVTT = fileName?.toLowerCase().endsWith('.vtt') || content.trim().startsWith('WEBVTT');
 
+  let subtitles: Subtitle[];
   if (isVTT) {
-    return parseVTT(content);
+    subtitles = parseVTT(content);
+  } else {
+    // Default to SRT parsing
+    subtitles = parseSRT(content);
   }
 
-  // Default to SRT parsing
-  return parseSRT(content);
+  // Post-process subtitles to detect and handle scene transitions
+  return detectSceneTransitions(subtitles);
+}
+
+/**
+ * Detect scene transitions and ensure subtitles from different scenes don't overlap
+ * @param subtitles - Array of parsed subtitles
+ * @returns Processed subtitles with scene transitions handled
+ */
+function detectSceneTransitions(subtitles: Subtitle[]): Subtitle[] {
+  if (subtitles.length <= 1) return subtitles;
+
+  const processed = [...subtitles];
+
+  // Look for potential scene transitions by analyzing time gaps and content
+  for (let i = 0; i < processed.length - 1; i++) {
+    const current = processed[i];
+    const next = processed[i + 1];
+
+    // Calculate time gap between subtitles
+    const timeGap = next.start - current.end;
+
+    // Check for potential scene transition indicators:
+    // 1. Larger time gap (more than 2 seconds)
+    // 2. Significant content change (no shared words/phrases)
+    const isLargeTimeGap = timeGap > 2.0;
+
+    // Check for content discontinuity (simplified approach)
+    // For Japanese, we look for common sentence endings followed by new content
+    const japaneseTransitionPattern = /([。！？]|(?:です|ます))\s*[^\s]/;
+    const hasContentDiscontinuity = japaneseTransitionPattern.test(current.text);
+
+    // If we detect a likely scene transition, ensure there's a clear separation
+    if (isLargeTimeGap || hasContentDiscontinuity) {
+      // Ensure there's at least a small gap between the subtitles
+      if (current.end >= next.start) {
+        // Force a small gap (200ms) between scene transitions
+        current.end = next.start - 0.2;
+      }
+
+      // If the current subtitle contains text that might belong to the next scene,
+      // try to split it at a logical point
+      if (hasContentDiscontinuity) {
+        const match = current.text.match(japaneseTransitionPattern);
+        if (match && match.index !== undefined) {
+          // Split the text at the transition point
+          const splitIndex = match.index + match[1].length;
+          const firstPart = current.text.substring(0, splitIndex);
+          const secondPart = current.text.substring(splitIndex).trim();
+
+          // Update the current subtitle with just the first part
+          current.text = firstPart;
+
+          // If there's significant content in the second part, create a new subtitle
+          if (secondPart.length > 5) { // Only if it's substantial content
+            // Create a new subtitle for the second part
+            const newSubtitle: Subtitle = {
+              id: current.id + 0.5, // Use a half-id to maintain order
+              start: current.end - 0.5, // Start slightly before current ends
+              end: next.start - 0.1, // End just before next starts
+              text: secondPart
+            };
+
+            // Insert the new subtitle
+            processed.splice(i + 1, 0, newSubtitle);
+            i++; // Skip the newly inserted subtitle in the next iteration
+          }
+        }
+      }
+    }
+  }
+
+  // Ensure IDs are sequential integers
+  return processed.map((sub, index) => ({
+    ...sub,
+    id: index + 1
+  }));
 }
 
 export default {

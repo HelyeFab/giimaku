@@ -5,14 +5,23 @@ import FileSelector from '@/components/FileSelector';
 import VideoPlayer from '@/components/VideoPlayer';
 import SubtitleDisplay from '@/components/SubtitleDisplay';
 import SubtitleGenerator from '@/components/SubtitleGenerator';
+import SubtitleSyncControls from '@/components/SubtitleSyncControls';
+import useSubtitleSync from '@/hooks/useSubtitleSync';
 
 export default function Home() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [subtitleFile, setSubtitleFile] = useState<File | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
-  const [subtitle, setSubtitle] = useState<string>('');
+  const [subtitleDelay, setSubtitleDelay] = useState(0); // Manual offset in seconds
+
+  // Use the subtitle sync hook for displaying subtitles with manual offset
+  const { currentSubtitle, detectedLanguage } = useSubtitleSync(subtitleFile, currentTime, subtitleDelay);
 
   const handleVideoFileSelect = (file: File) => {
+    // Reset subtitle file when a new video is loaded
+    if (videoFile?.name !== file.name) {
+      setSubtitleFile(null);
+    }
     setVideoFile(file);
   };
 
@@ -39,6 +48,7 @@ export default function Home() {
         <FileSelector
           onVideoSelect={handleVideoFileSelect}
           onSubtitleSelect={handleSubtitleFileSelect}
+          currentVideoName={videoFile?.name}
         />
       </div>
 
@@ -47,19 +57,30 @@ export default function Home() {
           <SubtitleGenerator
             videoFile={videoFile}
             onSubtitlesGenerated={handleGeneratedSubtitles}
+            onSubtitlesCleared={() => setSubtitleFile(null)}
           />
-          <div className="relative aspect-video">
+          <div className="relative">
             <VideoPlayer
               videoFile={videoFile}
               subtitleFile={subtitleFile}
               onTimeUpdate={handleTimeUpdate}
-              onSubtitleChange={setSubtitle}
+              onSubtitleChange={() => {}} // We're using the hook now
             />
           </div>
 
-          <div className="w-full p-4 bg-gray-800 rounded-lg min-h-16 flex items-center justify-center">
-            <SubtitleDisplay text={subtitle} />
+          <div className="w-full h-32 p-4 bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden">
+            <SubtitleDisplay
+              text={currentSubtitle}
+              videoKey={videoFile ? videoFile.name : undefined}
+              language={detectedLanguage}
+            />
           </div>
+
+          {/* Add subtitle sync controls */}
+          <SubtitleSyncControls
+            onDelayChange={setSubtitleDelay}
+            currentDelay={subtitleDelay}
+          />
         </div>
       )}
 

@@ -1,17 +1,33 @@
 "use client";
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 
 interface FileSelectorProps {
   onVideoSelect: (file: File) => void;
   onSubtitleSelect: (file: File) => void;
+  currentVideoName?: string; // Add current video name for validation
 }
 
-const FileSelector: React.FC<FileSelectorProps> = ({ onVideoSelect, onSubtitleSelect }) => {
+const FileSelector: React.FC<FileSelectorProps> = ({
+  onVideoSelect,
+  onSubtitleSelect,
+  currentVideoName = ''
+}) => {
   const videoInputRef = useRef<HTMLInputElement>(null);
   const subtitleInputRef = useRef<HTMLInputElement>(null);
   const [selectedVideoName, setSelectedVideoName] = useState<string>('');
   const [selectedSubtitleName, setSelectedSubtitleName] = useState<string>('');
+
+  // Reset subtitle display when video changes
+  useEffect(() => {
+    if (currentVideoName && currentVideoName !== selectedVideoName) {
+      setSelectedSubtitleName('');
+      // Reset the subtitle input field
+      if (subtitleInputRef.current) {
+        subtitleInputRef.current.value = '';
+      }
+    }
+  }, [currentVideoName, selectedVideoName]);
 
   const handleVideoButtonClick = () => {
     if (videoInputRef.current) {
@@ -35,10 +51,46 @@ const FileSelector: React.FC<FileSelectorProps> = ({ onVideoSelect, onSubtitleSe
     }
   };
 
+  // Helper function to check if subtitle likely belongs to the video
+  const isSubtitleMatchingVideo = (subtitleName: string, videoName: string): boolean => {
+    if (!videoName) return true; // If no video is loaded, don't validate
+
+    // Remove extensions from both names
+    const subtitleBaseName = subtitleName.replace(/\.[^/.]+$/, "");
+    const videoBaseName = videoName.replace(/\.[^/.]+$/, "");
+
+    // Check if subtitle name contains video name or vice versa
+    // This is a simple heuristic that can be improved
+    return (
+      subtitleBaseName.includes(videoBaseName) ||
+      videoBaseName.includes(subtitleBaseName) ||
+      // Check for common naming patterns like "movie_name.en.srt" for "movie_name.mp4"
+      subtitleBaseName.startsWith(videoBaseName + '.') ||
+      // Allow exact match of base names
+      subtitleBaseName === videoBaseName
+    );
+  };
+
   const handleSubtitleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
       const file = files[0];
+
+      // Validate if subtitle likely belongs to current video
+      if (currentVideoName && !isSubtitleMatchingVideo(file.name, currentVideoName)) {
+        const confirmLoad = window.confirm(
+          `The subtitle file "${file.name}" may not match the current video "${currentVideoName}". Load it anyway?`
+        );
+
+        if (!confirmLoad) {
+          // Reset the file input
+          if (subtitleInputRef.current) {
+            subtitleInputRef.current.value = '';
+          }
+          return;
+        }
+      }
+
       setSelectedSubtitleName(file.name);
       console.log('Selected subtitle file:', file.name, file.type, file.size);
       onSubtitleSelect(file);

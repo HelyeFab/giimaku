@@ -4,58 +4,80 @@ import React, { useEffect, useState } from 'react';
 
 interface SubtitleDisplayProps {
   text: string;
+  videoKey?: string | number; // Add a key prop to force reset when video changes
+  language?: string; // Language of the subtitles (e.g., 'ja' for Japanese)
 }
 
-const SubtitleDisplay: React.FC<SubtitleDisplayProps> = ({ text }) => {
-  const [displayText, setDisplayText] = useState<string>('');
-  const [isVisible, setIsVisible] = useState<boolean>(false);
-  const [prevText, setPrevText] = useState<string>('');
+/**
+ * Format subtitle text by adding line breaks after punctuation marks
+ * with language-specific optimizations
+ *
+ * @param text - The subtitle text to format
+ * @param language - The language of the text (ISO 639-1 code)
+ * @returns Formatted text with line breaks
+ */
+const formatSubtitleText = (text: string, language?: string): string => {
+  if (!text) return '';
 
-  // Handle text changes with a smooth transition and extended display time
+  const isJapanese = language === 'ja';
+
+  if (isJapanese) {
+    // Japanese-specific formatting - simpler approach
+    // Add breaks after sentence endings
+    return text.replace(/([。！？])/g, '$1\n');
+  } else {
+    // Default formatting for other languages
+    // Add breaks after periods, question marks, exclamation marks
+    return text.replace(/([.!?]+\s)/g, '$1\n');
+  }
+};
+
+const SubtitleDisplay: React.FC<SubtitleDisplayProps> = ({ text, videoKey, language }) => {
+  const [displayText, setDisplayText] = useState<string>('');
+
+  // Reset state when video changes
+  useEffect(() => {
+    setDisplayText('');
+  }, [videoKey]);
+
+  // Simple, direct update of display text when text prop changes
   useEffect(() => {
     if (text) {
-      // If there's new text, make it visible with the new content
-      setDisplayText(text);
-      setIsVisible(true);
-      // Store the current text for persistence
-      setPrevText(text);
+      const formattedText = formatSubtitleText(text, language);
+      setDisplayText(formattedText);
     } else {
-      // If text is empty, don't immediately hide it
-      // Instead, keep it visible for a bit longer before fading out
-      const fadeOutDelay = setTimeout(() => {
-        setIsVisible(false);
-      }, 1500); // Keep subtitle visible for 1.5 seconds after it should end
-
-      // Clean up timeout if component unmounts or text changes
-      return () => clearTimeout(fadeOutDelay);
+      setDisplayText('');
     }
-  }, [text]);
+  }, [text, language]);
 
-  // Handle the case when no text is provided
-  if (!text && !prevText) {
+  // If there's no text to display, render nothing
+  if (!displayText) {
     return null;
   }
 
   return (
-    <div className="w-full text-center">
+    <div className="absolute inset-x-0 bottom-0 w-full text-center">
       <div
-        className={`
-          inline-block
-          px-8 py-4
-          bg-black/80
-          rounded-lg
-          border-2 border-gray-600
-          max-w-[90%]
-          transition-all duration-700 ease-in-out
-          ${isVisible
-            ? 'opacity-100 transform translate-y-0'
-            : 'opacity-0 transform translate-y-2'
-          }
-        `}
+        className="inline-block px-8 py-4 bg-black/80 rounded-lg border-2 border-gray-600 max-w-[90%] mb-2"
       >
-        <p className="text-white text-2xl font-bold drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
-          {isVisible ? displayText : prevText}
-        </p>
+        <div
+          className={`
+            text-white text-2xl font-bold
+            drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]
+            whitespace-pre-line
+            ${language === 'ja'
+              ? 'font-japanese tracking-wider leading-relaxed'
+              : 'leading-normal'
+            }
+          `}
+          style={{
+            letterSpacing: language === 'ja' ? '0.05em' : 'normal',
+            maxHeight: '5rem',
+            overflowY: 'auto'
+          }}
+        >
+          {displayText}
+        </div>
       </div>
     </div>
   );

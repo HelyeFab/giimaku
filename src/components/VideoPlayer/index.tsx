@@ -28,7 +28,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [isReady, setIsReady] = useState(false);
   const [transcodingProgress, setTranscodingProgress] = useState<number | null>(null);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [subtitleDelay, setSubtitleDelay] = useState<number>(0); // Delay in seconds
 
   // Process video file and transcode if necessary
   useEffect(() => {
@@ -145,6 +144,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const updateSubtitles = (currentTime: number) => {
     // Log current playback time and number of subtitles
     console.log(`Updating subtitles at ${currentTime}s, total subtitles: ${subtitles.length}`);
+
     const currentSubtitle = subtitles.find(
       sub => currentTime >= sub.start && currentTime <= sub.end
     );
@@ -179,7 +179,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   return (
-    <div className="w-full h-full bg-black rounded-lg overflow-hidden relative">
+    <div className="w-full bg-black rounded-lg overflow-hidden relative flex flex-col">
       {videoUrl ? (
         <div className="w-full h-full flex items-center justify-center">
           {/* Special handling for OGV (Ogg Theora) files */}
@@ -258,6 +258,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </div>
         </div>
       )}
+
     </div>
   );
 };

@@ -12,9 +12,14 @@ import {
 interface SubtitleGeneratorProps {
   videoFile: File | null;
   onSubtitlesGenerated: (srtContent: string) => void;
+  onSubtitlesCleared?: () => void; // Add callback for when subtitles are cleared
 }
 
-export default function SubtitleGenerator({ videoFile, onSubtitlesGenerated }: SubtitleGeneratorProps) {
+export default function SubtitleGenerator({
+  videoFile,
+  onSubtitlesGenerated,
+  onSubtitlesCleared
+}: SubtitleGeneratorProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [apiKey, setApiKey] = useState(getConfig().openaiApiKey);
@@ -36,13 +41,23 @@ export default function SubtitleGenerator({ videoFile, onSubtitlesGenerated }: S
 
     // Generate a unique identifier for the video
     const videoId = `${videoFile.name}-${videoFile.size}-${videoFile.lastModified}`;
+    console.log('Checking for stored subtitles with video ID:', videoId);
+
+    // Debug: Log all localStorage keys
+    console.log('All localStorage keys:');
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      console.log(`- ${key}`);
+    }
 
     // If we've already loaded subtitles for this video, don't do it again
     if (loadedVideoRef.current === videoId) {
+      console.log('Subtitles already loaded for this video, skipping check');
       return;
     }
 
     const hasStored = hasStoredSubtitles(videoFile);
+    console.log('Has stored subtitles:', hasStored);
     setHasStoredSubs(hasStored);
 
     // If we have stored subtitles, load them automatically
@@ -52,6 +67,7 @@ export default function SubtitleGenerator({ videoFile, onSubtitlesGenerated }: S
       if (storedSubtitles) {
         // Mark this video as loaded to prevent infinite loops
         loadedVideoRef.current = videoId;
+        console.log('Loaded subtitles length:', storedSubtitles.length);
 
         onSubtitlesGenerated(storedSubtitles);
 
@@ -61,7 +77,11 @@ export default function SubtitleGenerator({ videoFile, onSubtitlesGenerated }: S
         setTimeout(() => {
           setNotification(null);
         }, 3000);
+      } else {
+        console.log('Failed to get stored subtitles despite hasStoredSubtitles returning true');
       }
+    } else {
+      console.log('No stored subtitles found for this video');
     }
   }, [videoFile]); // Remove onSubtitlesGenerated from dependencies
 
@@ -103,6 +123,11 @@ export default function SubtitleGenerator({ videoFile, onSubtitlesGenerated }: S
       // Reset the loaded video ref to allow loading subtitles again
       loadedVideoRef.current = null;
       console.log('Deleted stored subtitles');
+
+      // Notify parent component that subtitles were cleared
+      if (onSubtitlesCleared) {
+        onSubtitlesCleared();
+      }
 
       // Show notification
       setNotification('Deleted stored subtitles');
@@ -155,7 +180,15 @@ export default function SubtitleGenerator({ videoFile, onSubtitlesGenerated }: S
 
       onSubtitlesGenerated(subtitles);
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'An error occurred');
+      // Handle rate limiting error with a more user-friendly message
+      if (error instanceof Error && error.message.includes('rate limit exceeded')) {
+        setError(
+          'OpenAI API rate limit exceeded. This typically happens when you make too many requests in a short period. ' +
+          'Please wait a few minutes and try again, or use a different API key.'
+        );
+      } else {
+        setError(error instanceof Error ? error.message : 'An error occurred');
+      }
     } finally {
       setIsGenerating(false);
     }

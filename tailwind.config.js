@@ -6,7 +6,19 @@ module.exports = {
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        'japanese': [
+          '"Hiragino Sans"',
+          '"Hiragino Kaku Gothic Pro"',
+          '"Yu Gothic"',
+          '"YuGothic"',
+          '"Meiryo"',
+          '"MS PGothic"',
+          'sans-serif'
+        ],
+      },
+    },
   },
   plugins: [],
 }
