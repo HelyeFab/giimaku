@@ -3,6 +3,7 @@ interface Subtitle {
   start: number;
   end: number;
   text: string;
+  furigana?: string;
 }
 
 /**
@@ -20,6 +21,30 @@ export function timeToSeconds(timestamp: string): number {
   const milliseconds = parseInt(match[4], 10);
 
   return hours * 3600 + minutes * 60 + seconds + milliseconds / 1000;
+}
+
+/**
+ * Extract furigana from text
+ * Format: Main text {furigana}
+ * @param text - Text with furigana markers
+ * @returns Object with main text and furigana
+ */
+function extractFurigana(text: string): { mainText: string; furigana?: string } {
+  // Check if the text contains furigana markers
+  const furiganaRegex = /\{([^}]+)\}/;
+  const match = text.match(furiganaRegex);
+
+  if (match) {
+    // Extract furigana text
+    const furigana = match[1];
+    // Remove furigana markers from main text
+    const mainText = text.replace(furiganaRegex, '').trim();
+
+    return { mainText, furigana };
+  }
+
+  // No furigana found
+  return { mainText: text, furigana: undefined };
 }
 
 /**
@@ -52,13 +77,17 @@ export function parseSRT(content: string): Subtitle[] {
     const end = timeToSeconds(timestamps[1]);
 
     // Remaining lines are the subtitle text
-    const text = lines.slice(2).join('\n');
+    const rawText = lines.slice(2).join('\n');
+
+    // Extract furigana if present
+    const { mainText, furigana } = extractFurigana(rawText);
 
     subtitles.push({
       id,
       start,
       end,
-      text
+      text: mainText,
+      furigana
     });
   });
 
@@ -104,13 +133,17 @@ export function parseVTT(content: string): Subtitle[] {
     const end = convertVTTTimeToSeconds(timestamps[1]);
 
     // Remaining lines are the subtitle text
-    const text = lines.slice(startLine + 1).join('\n');
+    const rawText = lines.slice(startLine + 1).join('\n');
+
+    // Extract furigana if present
+    const { mainText, furigana } = extractFurigana(rawText);
 
     subtitles.push({
       id: id++,
       start,
       end,
-      text
+      text: mainText,
+      furigana
     });
   });
 

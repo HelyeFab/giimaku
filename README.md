@@ -8,6 +8,7 @@ A Next.js application that allows users to select and play local video files wit
 - Video playback in a dedicated UI component
 - Subtitle extraction and synchronization with video content
 - Subtitle display below the video player
+- Furigana support for Japanese subtitles
 
 ## Tech Stack
 
@@ -76,9 +77,31 @@ npm run dev
 - ffmpeg.wasm provides in-browser video processing capabilities
 - Subtitles are synchronized with the video using timestamp information
 
+## Furigana Support
+
+The application supports displaying furigana (reading aids) above Japanese text in subtitles. This feature is particularly useful for Japanese language learners who need pronunciation guidance for kanji characters.
+
+### How to Use Furigana
+
+To add furigana to your subtitles, use the following format in your SRT or VTT files:
+
+```
+Main Japanese text {furigana text}
+```
+
+For example:
+```
+こんにちは、世界 {Konnichiwa, Sekai}
+```
+
+The main Japanese text will be displayed normally, while the text in curly braces will appear as smaller furigana text above it.
+
+A sample subtitle file with furigana is included at `public/videos/sample_japanese_with_furigana.srt`.
+
 ## Future Enhancements
 
 - Support for multiple subtitle tracks
-- Custom subtitle styling options
+- Additional custom subtitle styling options
 - Ability to edit and save subtitles
 - Offline functionality with PWA features
+- Advanced furigana formatting options

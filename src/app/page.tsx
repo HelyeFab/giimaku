@@ -11,6 +11,7 @@ export default function Home() {
   const [subtitleFile, setSubtitleFile] = useState<File | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [subtitle, setSubtitle] = useState<string>('');
+  const [furigana, setFurigana] = useState<string>('');
 
   const handleVideoFileSelect = (file: File) => {
     setVideoFile(file);
@@ -53,12 +54,15 @@ export default function Home() {
               videoFile={videoFile}
               subtitleFile={subtitleFile}
               onTimeUpdate={handleTimeUpdate}
-              onSubtitleChange={setSubtitle}
+              onSubtitleChange={(text, furiganaText) => {
+                setSubtitle(text);
+                setFurigana(furiganaText || '');
+              }}
             />
           </div>
 
           <div className="w-full p-4 bg-gray-800 rounded-lg min-h-16 flex items-center justify-center">
-            <SubtitleDisplay text={subtitle} />
+            <SubtitleDisplay text={subtitle} furigana={furigana} />
           </div>
         </div>
       )}

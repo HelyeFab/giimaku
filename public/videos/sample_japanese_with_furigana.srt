@@ -1,0 +1,19 @@
+1
+00:00:01,000 --> 00:00:05,000
+こんにちは、世界 {Konnichiwa, Sekai}
+
+2
+00:00:06,000 --> 00:00:10,000
+私の名前はジョンです {Watashi no namae wa Jon desu}
+
+3
+00:00:11,000 --> 00:00:15,000
+日本語を勉強しています {Nihongo wo benkyou shiteimasu}
+
+4
+00:00:16,000 --> 00:00:20,000
+漢字は難しいです {Kanji wa muzukashii desu}
+
+5
+00:00:21,000 --> 00:00:25,000
+でも、頑張ります {Demo, ganbarimasu}

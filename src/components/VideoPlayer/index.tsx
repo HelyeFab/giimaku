@@ -11,7 +11,7 @@ interface VideoPlayerProps {
   videoFile: File;
   subtitleFile?: File | null;
   onTimeUpdate: (time: number) => void;
-  onSubtitleChange: (text: string) => void;
+  onSubtitleChange: (text: string, furigana?: string) => void;
 }
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({
@@ -152,9 +152,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (currentSubtitle) {
       console.log(`Found subtitle: ${currentSubtitle.text}`);
       console.log(`Time range: ${currentSubtitle.start}s - ${currentSubtitle.end}s`);
-      onSubtitleChange(currentSubtitle.text);
+
+      // Extract furigana if available
+      const furigana = currentSubtitle.furigana || '';
+
+      onSubtitleChange(currentSubtitle.text, furigana);
     } else {
-      onSubtitleChange('');
+      onSubtitleChange('', '');
     }
   };
 
